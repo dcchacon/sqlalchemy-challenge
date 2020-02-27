@@ -1,10 +1,12 @@
 import datetime as dt
 import numpy as np
 import pandas as pd
+
 import sqlalchemy
 from sqlalchemy.ext.automap import automap_base
 from sqlalchemy.orm import Session
 from sqlalchemy import create_engine, func
+
 from flask import Flask, jsonify
 
 #################################################
@@ -58,9 +60,10 @@ def precipitation():
     year_prec = session.query(Measurement.date.label('Measurement Date'), Measurement.prcp.label('Measurement Precipitation')).\
         filter(Measurement.date > year_ago).\
         order_by(Measurement.date.asc()).all()
+    
     # Dict with 'Measurement Date'as the key and 'Measurement Precipitation' as the value
-    precip = {date: 'Measurement Date' for date, 'Measurement Precipitation' in precipitation}
-    return jsonify(precip)
+    date_prec = list(np.ravel(year_prec))
+    return jsonify(date_prec)
 
 @app.route("/api/v1.0/stations")
 def stations():
@@ -74,7 +77,7 @@ def stations():
 def tobs():
     # Find the max date using SQLAlchemy (recent date)
     rec_date = session.query(Measurement.date).order_by(Measurement.date.desc()).filter(Measurement.station=='USC00519281').first()
-    
+    rec_date
     """Return the temperature observations (tobs) for previous year."""
     
     # Query the primary station for all tobs from the last year
@@ -87,7 +90,7 @@ def tobs():
     # Return the results
     return jsonify(temps)
 
-#@app.route("/api/v1.0/temp/<start>")
+
 @app.route("/api/v1.0/temp/<start>/<end>")
 
 def calc_temps(start_date, end_date):
