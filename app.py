@@ -13,7 +13,7 @@ from flask import Flask, jsonify
 # Database Setup
 #################################################
 
-engine = create_engine("sqlite:///Resources/hawaii.sqlite")
+engine = create_engine("sqlite:///Resources/hawaii.sqlite", connect_args={'check_same_thread':False})
 
 # reflect an existing database into a new model
 Base = automap_base()
@@ -43,7 +43,7 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
-        f"/api/v1.0/temp/start/end"
+        f"/api/v1.0/temperature/start_date/end_date"
     )
 @app.route("/api/v1.0/precipitation")
 def precipitation():
@@ -81,7 +81,7 @@ def tobs():
     """Return the temperature observations (tobs) for previous year."""
     
     # Query the primary station for all tobs from the last year
-    year_tobs = session.query(Measurement.date, Measurement.tobs.label('Measurement Temperature')).\
+    year_tobs = sessi0on.query(Measurement.date, Measurement.tobs.label('Measurement Temperature')).\
         filter(Measurement.date > '2016-08-18').filter(Measurement.station=='USC00519281').all()
 
     
@@ -90,21 +90,19 @@ def tobs():
     # Return the results
     return jsonify(temps)
 
-
-@app.route("/api/v1.0/temp/<start>/<end>")
-
-def calc_temps(start_date, end_date):
-    return session.query(func.min(Measurement.tobs), func.avg(Measurement.tobs), func.max(Measurement.tobs)).\
+@app.route("/api/v1.0/temperature/<start_date>")
+@app.route("/api/v1.0/temperature/<start_date>/<end_date>")
+def foo(start_date=None, end_date=None):
+    sel = [func.min(Measurement.tobs),func.avg(Measurement.tobs),func.max(Measurement.tobs)]
+    if not end_date:
+        temps= session.query(*sel).\
+        filter(Measurement.date >= start_date).all()
+        temps = list(np.ravel(temps))
+        return jsonify(temps)
+    results = session.query(*sel).\
         filter(Measurement.date >= start_date).filter(Measurement.date <= end_date).all()
-
-    # Use your previous function `calc_temps` to calculate the tmin, tavg, and tmax 
-    # for your trip using the previous year's data for those same dates.
-
-    my_trip_temps = calc_temps('2017-01-01', '2017-01-07')[0]
-
-     # Unravel results into a 1D array and convert to a list
-    temps = list(np.ravel(my_trip_temps))
-    # Return the results
+   
+    temps = list(np.ravel(results))
     return jsonify(temps) 
 
 if __name__ == '__main__':
